@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.lineInfo.mapper.LineTaskMapper">
+    
+    <resultMap type="LineTask" id="LineTaskResult">
+        <result property="id"    column="id"    />
+        <result property="lineId"    column="line_id"    />
+        <result property="productionTaskNo"    column="production_task_no"    />
+        <result property="gmtCreate"    column="gmt_create"    />
+        <result property="gmtModified"    column="gmt_modified"    />
+    </resultMap>
+
+    <resultMap id="LineTaskLineTaskRawResult" type="LineTask" extends="LineTaskResult">
+        <collection property="lineTaskRawList" notNullColumn="sub_id" javaType="java.util.List" resultMap="LineTaskRawResult" />
+    </resultMap>
+
+    <resultMap type="LineTaskRaw" id="LineTaskRawResult">
+        <result property="id"    column="sub_id"    />
+        <result property="taskId"    column="sub_task_id"    />
+        <result property="thickness"    column="sub_thickness"    />
+        <result property="width"    column="sub_width"    />
+        <result property="interDiameter"    column="sub_inter_diameter"    />
+        <result property="outerDiameter"    column="sub_outer_diameter"    />
+        <result property="tensileStrength"    column="sub_tensile_strength"    />
+        <result property="yieldStrength"    column="sub_yield_strength"    />
+        <result property="highestSpeed"    column="sub_highest_speed"    />
+        <result property="weight"    column="sub_weight"    />
+    </resultMap>
+
+    <sql id="selectLineTaskVo">
+        select id, line_id, production_task_no, gmt_create, gmt_modified from line_task
+    </sql>
+
+    <select id="selectLineTaskList" parameterType="LineTask" resultMap="LineTaskResult">
+        <include refid="selectLineTaskVo"/>
+        <where>  
+            <if test="lineId != null "> and line_id = #{lineId}</if>
+            <if test="productionTaskNo != null  and productionTaskNo != ''"> and production_task_no = #{productionTaskNo}</if>
+        </where>
+    </select>
+    
+    <select id="selectLineTaskById" parameterType="Long" resultMap="LineTaskLineTaskRawResult">
+        select a.id, a.line_id, a.production_task_no, a.gmt_create, a.gmt_modified,
+            b.id as sub_id, b.task_id as sub_task_id, b.thickness as sub_thickness, b.width as sub_width, b.inter_diameter as sub_inter_diameter, b.outer_diameter as sub_outer_diameter, b.tensile_strength as sub_tensile_strength, b.yield_strength as sub_yield_strength, b.highest_speed as sub_highest_speed, b.weight as sub_weight
+        from line_task a
+        left join line_task_raw b on b.task_id = a.id
+        where a.id = #{id}
+    </select>
+        
+    <insert id="insertLineTask" parameterType="LineTask" useGeneratedKeys="true" keyProperty="id">
+        insert into line_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="lineId != null">line_id,</if>
+            <if test="productionTaskNo != null and productionTaskNo != ''">production_task_no,</if>
+            <if test="gmtCreate != null">gmt_create,</if>
+            <if test="gmtModified != null">gmt_modified,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="lineId != null">#{lineId},</if>
+            <if test="productionTaskNo != null and productionTaskNo != ''">#{productionTaskNo},</if>
+            <if test="gmtCreate != null">#{gmtCreate},</if>
+            <if test="gmtModified != null">#{gmtModified},</if>
+         </trim>
+    </insert>
+
+    <update id="updateLineTask" parameterType="LineTask">
+        update line_task
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="lineId != null">line_id = #{lineId},</if>
+            <if test="productionTaskNo != null and productionTaskNo != ''">production_task_no = #{productionTaskNo},</if>
+            <if test="gmtCreate != null">gmt_create = #{gmtCreate},</if>
+            <if test="gmtModified != null">gmt_modified = #{gmtModified},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteLineTaskById" parameterType="Long">
+        delete from line_task where id = #{id}
+    </delete>
+
+    <delete id="deleteLineTaskByIds" parameterType="String">
+        delete from line_task where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+    <delete id="deleteLineTaskRawByTaskIds" parameterType="String">
+        delete from line_task_raw where task_id in 
+        <foreach item="taskId" collection="array" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteLineTaskRawByTaskId" parameterType="Long">
+        delete from line_task_raw where task_id = #{taskId}
+    </delete>
+
+    <insert id="batchLineTaskRaw">
+        insert into line_task_raw( id, task_id, thickness, width, inter_diameter, outer_diameter, tensile_strength, yield_strength, highest_speed, weight) values
+		<foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.id}, #{item.taskId}, #{item.thickness}, #{item.width}, #{item.interDiameter}, #{item.outerDiameter}, #{item.tensileStrength}, #{item.yieldStrength}, #{item.highestSpeed}, #{item.weight})
+        </foreach>
+    </insert>
+</mapper>

@@ -1,0 +1,265 @@
+<template>
+  <div class="app-container">
+    <el-table v-loading="loading" :data="basicList" @selection-change="handleSelectionChange" stripe>
+      <el-table-column type="selection" width="55" align="center"/>
+      <!--      <el-table-column label="主键id" align="center" prop="id"/>-->
+      <el-table-column label="序号" align="center" type="index" :index="indexMethod"/>
+      <el-table-column label="设备名称" align="center" prop="lineName"/>
+      <el-table-column label="设备编号" align="center" prop="lineIdentifier"/>
+      <el-table-column label="设备厂家" align="center" prop="manufacturer"/>
+      <el-table-column label="设备线速(m/min)" align="center" prop="linearVelocity"/>
+      <el-table-column label="设备状态" align="center" prop="lineStatus">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.line_status" :value="scope.row.lineStatus"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="投产时间" align="center" prop="productionTime" width="180">
+        <template slot-scope="scope">
+          <span>{{ parseTime(scope.row.productionTime, '{y}-{m}-{d}') }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="年产能力(T)" align="center" prop="annualCapacity"/>
+      <el-table-column label="产品范围" align="center" prop="productRange"/>
+      <el-table-column label="产线监控" align="center" class-name="small-padding fixed-width">
+        <template slot-scope="scope">
+          <router-link :to="`/lineMonitor/line/` + scope.row.id">
+            <el-link icon="el-icon-monitor" type="primary" :underline="false">
+              查看产线监控图
+            </el-link>
+          </router-link>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <pagination
+      v-show="total>0"
+      :total="total"
+      :page.sync="queryParams.pageNum"
+      :limit.sync="queryParams.pageSize"
+      @pagination="getList"
+    />
+
+    <!-- 添加或修改产线管理对话框 -->
+    <el-dialog :title="title" :visible.sync="open" width="700px" append-to-body>
+      <el-form ref="form" :model="form" :rules="rules" label-width="120px">
+        <el-form-item label="设备名称" prop="lineName">
+          <el-input v-model="form.lineName" placeholder="请输入设备名称"/>
+        </el-form-item>
+        <el-form-item label="设备编号" prop="lineIdentifier">
+          <el-input v-model="form.lineIdentifier" placeholder="请输入设备编号"/>
+        </el-form-item>
+        <el-form-item label="设备厂家" prop="manufacturer">
+          <el-input v-model="form.manufacturer" placeholder="请输入设备厂家"/>
+        </el-form-item>
+        <el-form-item label="设备线速(m/min)" prop="linearVelocity">
+          <el-input v-model="form.linearVelocity" placeholder="请输入设备线速"/>
+        </el-form-item>
+        <el-form-item label="设备状态">
+          <el-radio-group v-model="form.lineStatus">
+            <el-radio
+              v-for="dict in dict.type.line_status"
+              :key="dict.value"
+              :label="parseInt(dict.value)"
+            >{{ dict.label }}
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="投产时间" prop="productionTime">
+          <el-date-picker clearable size="small"
+                          v-model="form.productionTime"
+                          type="date"
+                          value-format="yyyy-MM-dd"
+                          placeholder="选择投产时间">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="年产能力(T)" prop="annualCapacity">
+          <el-input v-model="form.annualCapacity" placeholder="请输入年产能力"/>
+        </el-form-item>
+        <el-form-item label="产品范围" prop="productRange">
+          <el-input v-model="form.productRange" type="textarea" placeholder="请输入产品范围"/>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="submitForm">确 定</el-button>
+        <el-button @click="cancel">取 消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {listBasic, getBasic, delBasic, addBasic, updateBasic, exportBasic} from "@/api/lineInfo/basic";
+
+export default {
+  name: "lineMonitor",
+  dicts: ['line_status'],
+  data() {
+    return {
+      // 遮罩层
+      loading: true,
+      // 导出遮罩层
+      exportLoading: false,
+      // 选中数组
+      ids: [],
+      // 非单个禁用
+      single: true,
+      // 非多个禁用
+      multiple: true,
+      // 显示搜索条件
+      showSearch: true,
+      // 总条数
+      total: 0,
+      // 产线管理表格数据
+      basicList: [],
+      // 弹出层标题
+      title: "",
+      // 是否显示弹出层
+      open: false,
+      // 查询参数
+      queryParams: {
+        pageNum: 1,
+        pageSize: 10,
+        lineName: null,
+        lineIdentifier: null,
+        manufacturer: null,
+        lineStatus: null,
+      },
+      // 表单参数
+      form: {},
+      // 表单校验
+      rules: {}
+    };
+  },
+  created() {
+    this.getList();
+  },
+  methods: {
+    indexMethod(index) {
+      return index + 1;
+    },
+    /** 查询产线管理列表 */
+    getList() {
+      this.loading = true;
+      listBasic(this.queryParams).then(response => {
+        this.basicList = response.rows;
+        // console.log(response.rows);
+        this.total = response.total;
+        this.loading = false;
+      });
+    },
+    // 取消按钮
+    cancel() {
+      this.open = false;
+      this.reset();
+    },
+    // 表单重置
+    reset() {
+      this.form = {
+        id: null,
+        lineName: null,
+        lineIdentifier: null,
+        manufacturer: null,
+        linearVelocity: null,
+        lineStatus: 1,
+        productionTime: null,
+        annualCapacity: null,
+        productRange: null
+      };
+      this.resetForm("form");
+    },
+    /** 搜索按钮操作 */
+    handleQuery() {
+      this.queryParams.pageNum = 1;
+      this.getList();
+    },
+    /** 重置按钮操作 */
+    resetQuery() {
+      this.resetForm("queryForm");
+      this.handleQuery();
+    },
+    // 多选框选中数据
+    handleSelectionChange(selection) {
+      this.ids = selection.map(item => item.id)
+      this.single = selection.length !== 1
+      this.multiple = !selection.length
+    },
+    /** 新增按钮操作 */
+    handleAdd() {
+      this.reset();
+      this.open = true;
+      this.title = "添加产线管理";
+    },
+    /** 修改按钮操作 */
+    handleUpdate(row) {
+      this.reset();
+      const id = row.id || this.ids
+      getBasic(id).then(response => {
+        this.form = response.data;
+        this.open = true;
+        this.title = "修改产线管理";
+      });
+    },
+    /** 提交按钮 */
+    submitForm() {
+      this.$refs["form"].validate(valid => {
+        if (valid) {
+          if (this.form.id != null) {
+            updateBasic(this.form).then(response => {
+              this.$modal.msgSuccess("修改成功");
+              this.open = false;
+              this.getList();
+            });
+          } else {
+            addBasic(this.form).then(response => {
+              this.$modal.msgSuccess("新增成功");
+              this.open = false;
+              this.getList();
+            });
+          }
+        }
+      });
+    },
+    /** 删除按钮操作 */
+    handleDelete(row) {
+      const ids = row.id || this.ids;
+      this.$modal.confirm('是否确认删除产线管理编号为"' + ids + '"的数据项？').then(function () {
+        return delBasic(ids);
+      }).then(() => {
+        this.getList();
+        this.$modal.msgSuccess("删除成功");
+      }).catch(() => {
+      });
+    },
+    /** 导出按钮操作 */
+    handleExport() {
+      const queryParams = this.queryParams;
+      this.$modal.confirm('是否确认导出所有产线管理数据项？').then(() => {
+        this.exportLoading = true;
+        return exportBasic(queryParams);
+      }).then(response => {
+        this.$download.name(response.msg);
+        this.exportLoading = false;
+      }).catch(() => {
+      });
+    }
+  }
+};
+</script>
+
+<style>
+.demo-table-expand {
+  font-size: 0;
+}
+
+.demo-table-expand label {
+  width: 90px;
+  color: #99a9bf;
+}
+
+.demo-table-expand .el-form-item {
+  margin-left: 15px;
+  margin-right: 0;
+  margin-bottom: 0;
+  width: 30%;
+}
+</style>

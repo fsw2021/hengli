@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ruoyi.lineInfo.mapper.LineBasicMapper">
+    
+    <resultMap type="LineBasic" id="LineBasicResult">
+        <result property="id"    column="id"    />
+        <result property="lineName"    column="line_name"    />
+        <result property="lineIdentifier"    column="line_identifier"    />
+        <result property="manufacturer"    column="manufacturer"    />
+        <result property="linearVelocity"    column="linear_velocity"    />
+        <result property="lineStatus"    column="line_status"    />
+        <result property="productionTime"    column="production_time"    />
+        <result property="annualCapacity"    column="annual_capacity"    />
+        <result property="productRange"    column="product_range"    />
+    </resultMap>
+
+    <sql id="selectLineBasicVo">
+        select id, line_name, line_identifier, manufacturer, linear_velocity, line_status, production_time, annual_capacity, product_range from line_basic
+    </sql>
+
+    <select id="selectLineBasicList" parameterType="LineBasic" resultMap="LineBasicResult">
+        <include refid="selectLineBasicVo"/>
+        <where>  
+            <if test="lineName != null  and lineName != ''"> and line_name like concat('%', #{lineName}, '%')</if>
+            <if test="lineIdentifier != null  and lineIdentifier != ''"> and line_identifier like concat('%', #{lineIdentifier}, '%')</if>
+            <if test="manufacturer != null  and manufacturer != ''"> and manufacturer = #{manufacturer}</if>
+            <if test="lineStatus != null "> and line_status = #{lineStatus}</if>
+        </where>
+    </select>
+    
+    <select id="selectLineBasicById" parameterType="Long" resultMap="LineBasicResult">
+        <include refid="selectLineBasicVo"/>
+        where id = #{id}
+    </select>
+        
+    <insert id="insertLineBasic" parameterType="LineBasic" useGeneratedKeys="true" keyProperty="id">
+        insert into line_basic
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="lineName != null">line_name,</if>
+            <if test="lineIdentifier != null">line_identifier,</if>
+            <if test="manufacturer != null">manufacturer,</if>
+            <if test="linearVelocity != null">linear_velocity,</if>
+            <if test="lineStatus != null">line_status,</if>
+            <if test="productionTime != null">production_time,</if>
+            <if test="annualCapacity != null">annual_capacity,</if>
+            <if test="productRange != null">product_range,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="lineName != null">#{lineName},</if>
+            <if test="lineIdentifier != null">#{lineIdentifier},</if>
+            <if test="manufacturer != null">#{manufacturer},</if>
+            <if test="linearVelocity != null">#{linearVelocity},</if>
+            <if test="lineStatus != null">#{lineStatus},</if>
+            <if test="productionTime != null">#{productionTime},</if>
+            <if test="annualCapacity != null">#{annualCapacity},</if>
+            <if test="productRange != null">#{productRange},</if>
+         </trim>
+    </insert>
+
+    <update id="updateLineBasic" parameterType="LineBasic">
+        update line_basic
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="lineName != null">line_name = #{lineName},</if>
+            <if test="lineIdentifier != null">line_identifier = #{lineIdentifier},</if>
+            <if test="manufacturer != null">manufacturer = #{manufacturer},</if>
+            <if test="linearVelocity != null">linear_velocity = #{linearVelocity},</if>
+            <if test="lineStatus != null">line_status = #{lineStatus},</if>
+            <if test="productionTime != null">production_time = #{productionTime},</if>
+            <if test="annualCapacity != null">annual_capacity = #{annualCapacity},</if>
+            <if test="productRange != null">product_range = #{productRange},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteLineBasicById" parameterType="Long">
+        delete from line_basic where id = #{id}
+    </delete>
+
+    <delete id="deleteLineBasicByIds" parameterType="String">
+        delete from line_basic where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
